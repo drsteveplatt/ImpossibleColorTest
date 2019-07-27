@@ -55,8 +55,8 @@ void setup() {
 // They're initialized "out of range", so the first time through it will print the current pot state. 
 //
 // MINPPS, MAXPPS:  min, max pulses per second.  We map the framerate pot into this range.
-#define MINPPS 5
-#define MAXPPS 60
+#define MINPPS 2
+#define MAXPPS 40
 void loop() {
   long flashRatio, flashSpeed;
   static long prevRedLen=-1, prevGreenLen=-1; // initialized out of range, forces print on first pass
@@ -65,9 +65,9 @@ void loop() {
   flashRatio = analogRead(RATIO_IN);
   flashSpeed = analogRead(SPEED_IN);
   // 2. calculate the pulse rate in ms for red, green pulses
-  long pps = MINPPS + (((MAXPPS-MINPPS)*flashSpeed)>>10);
-  long pulseLen = 1000/pps;
-  long greenLen = (pulseLen*flashRatio)>>10;
+  long pps = MINPPS + (((MAXPPS-MINPPS)*flashSpeed)/1023);
+  long pulseLen = 1000000/pps;
+  long greenLen = (pulseLen*flashRatio)/1023;
   long redLen = pulseLen -greenLen;
   // roundoff error to force a "true zero" on red
   if(redLen==1) { redLen = 0; greenLen = pulseLen; }
@@ -77,10 +77,13 @@ void loop() {
   prevRedLen = redLen;
   prevGreenLen = greenLen;
   // 3. Flash the LEDs
-  digitalWrite(GREENLED, LOW);
+  // Note that delayMicroseconds only takes an int param, not a long int.  So we need to hack around that.
   digitalWrite(REDLED, HIGH);
-  delay(redLen);
+  for( ; redLen>30000; redLen-=30000) delayMicroseconds(30000);
+  delayMicroseconds(redLen);
   digitalWrite(REDLED, LOW);
   digitalWrite(GREENLED, HIGH);
-  delay(greenLen);
+  for( ; greenLen>30000; greenLen-=30000) delayMicroseconds(30000);
+  delayMicroseconds(greenLen);
+  digitalWrite(GREENLED, LOW);
 }
