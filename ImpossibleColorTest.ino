@@ -79,7 +79,7 @@ void loop() {
   // 3. Flash the LEDs
   // Note that delayMicroseconds only takes an int param, not a long int.  So we need to hack around that.
   digitalWrite(REDLED, HIGH);
-*  for( ; redLen>30000; redLen-=30000) delayMicroseconds(30000);
+  for( ; redLen>30000; redLen-=30000) delayMicroseconds(30000);
   delayMicroseconds(redLen);
   digitalWrite(REDLED, LOW);
   digitalWrite(GREENLED, HIGH);
