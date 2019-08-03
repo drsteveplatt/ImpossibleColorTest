@@ -5,11 +5,31 @@
 // Ratio is the relative time R vs G
 //
 // Allows manual adjustment of the R/G ratio and the total flash frequency (pulses/sec).
+//
+// Version 1.0 Initial release
+// Version 1.1 Added LCD display, eliminated Serial output
 
-#define VERSION "1.0"
+#define VERSION "1.1"
 
-#include <Streaming.h>
+//#include <Streaming.h>
 
+#include <Wire.h>
+#include <LCD.h>
+#include <LiquidCrystal_I2C.h>
+
+#define I2C_ADDR    0x26
+#define BACKLIGHT_PIN     3
+#define En_pin  2
+#define Rw_pin  1
+#define Rs_pin  0
+#define D4_pin  4
+#define D5_pin  5
+#define D6_pin  6
+#define D7_pin  7
+
+LiquidCrystal_I2C  Lcd(I2C_ADDR,En_pin,Rw_pin,Rs_pin,D4_pin,D5_pin,D6_pin,D7_pin);
+
+#define D7_pin  7
 #define REDLED 9
 #define GREENLED 10
 #define BLUELED 11
@@ -33,9 +53,19 @@ void flashIt(int led, int nTimes) {
 
 void setup() {
   int i;
-  Serial.begin(115200);
-  Serial << "Impossible Color Test v. " << VERSION << endl;
-
+  //Serial.begin(115200);
+  //Serial << "Impossible Color Test v. " << VERSION << endl;
+  Lcd.begin(16,2);
+  Lcd.setBacklightPin(BACKLIGHT_PIN,POSITIVE);
+  Lcd.setBacklight(HIGH);
+  Lcd.home();
+  Lcd.print("Impossible colors");
+  Lcd.setCursor(0,1);
+  Lcd.print("Version ");
+  Lcd.print(VERSION);
+  delay(1000);
+  Lcd.clear();
+  
   // LED port setup
   pinMode(REDLED, OUTPUT);
   pinMode(GREENLED, OUTPUT);
@@ -59,7 +89,7 @@ void setup() {
 #define MAXPPS 40
 void loop() {
   long flashRatio, flashSpeed;
-  static long prevRedLen=-1, prevGreenLen=-1; // initialized out of range, forces print on first pass
+  static int prevRedMs=-1, prevGreenMs=-1; // initialized out of range, forces print on first pass
   // 1. Get pot values
   // flash* will be [0 1023]
   flashRatio = analogRead(RATIO_IN);
@@ -71,11 +101,20 @@ void loop() {
   long redLen = pulseLen -greenLen;
   // roundoff error to force a "true zero" on red
   if(redLen==1) { redLen = 0; greenLen = pulseLen; }
+  int greenMs = greenLen/1000;
+  int redMs = redLen/1000;
   // log if values have changed
-  if(redLen!=prevRedLen || greenLen!=prevGreenLen)
-    Serial << " PPPS: " << pps << " PulseLen: " << pulseLen << " Red: " << redLen << " Green: " << greenLen << endl;
-  prevRedLen = redLen;
-  prevGreenLen = greenLen;
+  if(redMs!=prevRedMs || greenMs!=prevGreenMs) {
+//    Serial << " PPPS: " << pps << " PulseLen: " << pulseLen << " Red: " << redLen << " Green: " << greenLen << endl;
+    Lcd.setCursor(0,0);
+    Lcd.print(pps); Lcd.print(" Hz          ");
+    Lcd.setCursor(0,1);
+    Lcd.print("R:"); Lcd.print(redMs);
+    Lcd.print("ms G:"); Lcd.print(greenMs);
+    Lcd.print("ms     ");
+  }
+  prevRedMs = redMs;
+  prevGreenMs = greenMs;
   // 3. Flash the LEDs
   // Note that delayMicroseconds only takes an int param, not a long int.  So we need to hack around that.
   digitalWrite(REDLED, HIGH);
